@@ -1,0 +1,39 @@
+{
+  "languages": [
+    {
+      "id": "c",
+      "name": "C",
+      "monacoId": "c",
+      "extension": ".c",
+      "starterCode": "#include <stdio.h>\n#include <stdlib.h>\n\nint main() {\n    // Write your code here\n    \n    return 0;\n}"
+    },
+    {
+      "id": "cpp",
+      "name": "C++",
+      "monacoId": "cpp",
+      "extension": ".cpp",
+      "starterCode": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    \n    return 0;\n}"
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "monacoId": "java",
+      "extension": ".java",
+      "starterCode": "import java.util.*;\nimport java.io.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n        \n    }\n}"
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "monacoId": "python",
+      "extension": ".py",
+      "starterCode": "# Write your code here\n"
+    },
+    {
+      "id": "go",
+      "name": "Go",
+      "monacoId": "go",
+      "extension": ".go",
+      "starterCode": "package main\n\nimport (\n\t\"fmt\"\n)\n\nfunc main() {\n\t// Write your code here\n\t\n}"
+    }
+  ]
+}
