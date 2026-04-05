@@ -226,7 +226,7 @@ function validateProblemId(problemId: string): string {
  * @throws Error if validation fails
  */
 function validateLanguage(language: string): string {
-  const validLanguages = ['c', 'cpp', 'java', 'python']
+  const validLanguages = ['c', 'cpp', 'java', 'python', 'go']
   
   if (!language || typeof language !== 'string') {
     throw new Error('Language must be a non-empty string')
