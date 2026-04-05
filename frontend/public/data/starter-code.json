@@ -27,6 +27,13 @@
       "monacoId": "python",
       "extension": ".py",
       "starterCode": "# Write your code here\n"
+    },
+    {
+      "id": "go",
+      "name": "Go",
+      "monacoId": "go",
+      "extension": ".go",
+      "starterCode": "package main\n\nimport (\n\t\"fmt\"\n)\n\nfunc main() {\n\t// Write your code here\n\t\n}"
     }
   ]
 }
