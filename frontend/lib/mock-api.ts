@@ -3,6 +3,13 @@
  * This simulates backend API responses by intercepting fetch calls
  */
 
+interface RunRequestBody {
+  problem_id?: string;
+  language?: string;
+  source?: string;
+  custom_input?: string | null;
+}
+
 if (typeof window !== 'undefined') {
   const originalFetch = window.fetch
   window.fetch = async (...args) => {
@@ -39,7 +46,7 @@ if (typeof window !== 'undefined') {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         })
-      } catch (error) {
+      } catch {
         return new Response(JSON.stringify({ error: 'Invalid request' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
@@ -53,7 +60,7 @@ if (typeof window !== 'undefined') {
       try {
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        let requestBody: any = {}
+        let requestBody: RunRequestBody = {}
         if (options && options.body) {
           requestBody = JSON.parse(options.body as string)
         }
