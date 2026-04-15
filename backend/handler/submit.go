@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/Aerosane/coding_arena/backend/adapter"
 	"github.com/Aerosane/coding_arena/backend/model"
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +31,14 @@ const (
 	// submissionIDBytes is the number of random bytes for submission IDs (16 bytes = 128 bits).
 	submissionIDBytes = 16
 )
+
+// judgeAdapter is set by main.go at startup via SetAdapter.
+var judgeAdapter *adapter.JudgeAdapter
+
+// SetAdapter injects the judge adapter into the handler package.
+func SetAdapter(a *adapter.JudgeAdapter) {
+	judgeAdapter = a
+}
 
 // Submit handles POST /submit — accepts code, language, and problem ID.
 func Submit(c *gin.Context) {
@@ -81,16 +90,64 @@ func Submit(c *gin.Context) {
 	log.Printf("[INFO] submission received: id=%s language=%s problem=%s ip=%s",
 		submissionID, req.Language, req.ProblemID, c.ClientIP())
 
-	// TODO: Task 5 — send submission to DMOJ judge-server
-	// Adapter must map: code->source, language->DMOJ executor ID (PY3, CPP17, etc.)
-	// and supply: time-limit, memory-limit, short-circuit, meta from problem config
+	// --- Judge integration ---
+	// If the judge adapter is available with a connected judge, grade the submission.
+	// Otherwise, queue it (graceful degradation).
 	resp := model.SubmitResponse{
 		ID:        submissionID,
-		Status:    "queued",
 		ProblemID: req.ProblemID,
 		Language:  req.Language,
-		Message:   "submission received, pending judge execution",
 	}
 
+	if judgeAdapter != nil && judgeAdapter.Available() {
+		// Send to judge synchronously (blocks until grading completes)
+		judgeResult, err := judgeAdapter.Submit(adapter.SubmissionRequest{
+			ProblemID:    req.ProblemID,
+			Language:     req.Language,
+			Source:       req.Code,
+			ShortCircuit: false,
+		})
+
+		if err != nil {
+			log.Printf("[ERROR] judge submission failed for %s: %v", submissionID, err)
+			resp.Status = "judge_error"
+			resp.Message = "judge grading failed, submission queued for retry"
+			c.JSON(http.StatusAccepted, resp)
+			return
+		}
+
+		// Convert adapter result to API model
+		resp.Status = "graded"
+		resp.Message = judgeResult.Status
+		resp.Result = &model.JudgeResult{
+			Verdict:      judgeResult.Status,
+			CompileError: judgeResult.CompileError,
+			TotalTime:    judgeResult.TotalTime,
+			MaxMemory:    judgeResult.MaxMemory,
+			Points:       judgeResult.Points,
+			TotalPoints:  judgeResult.TotalPoints,
+		}
+		for _, cr := range judgeResult.Cases {
+			resp.Result.Cases = append(resp.Result.Cases, model.JudgeCaseResult{
+				Position: cr.Position,
+				Status:   cr.Status,
+				Time:     cr.Time,
+				Memory:   cr.Memory,
+				Points:   cr.Points,
+				Total:    cr.Total,
+				Feedback: cr.Feedback,
+			})
+		}
+
+		log.Printf("[INFO] submission graded: id=%s verdict=%s points=%.1f/%.1f",
+			submissionID, judgeResult.Status, judgeResult.Points, judgeResult.TotalPoints)
+
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	// No judge available — accept and queue
+	resp.Status = "queued"
+	resp.Message = "submission received, pending judge execution"
 	c.JSON(http.StatusAccepted, resp)
 }

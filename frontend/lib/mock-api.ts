@@ -1,6 +1,10 @@
 /**
  * Mock API interceptor for Vite
- * This simulates backend API responses by intercepting fetch calls
+ * This simulates backend API responses by intercepting fetch calls.
+ *
+ * DISABLED by default — the Vite proxy forwards /api/* to the real backend.
+ * To re-enable for offline development, set VITE_USE_MOCK=true in your .env
+ * or start vite with: VITE_USE_MOCK=true npm run dev
  */
 
 interface RunRequestBody {
@@ -10,18 +14,22 @@ interface RunRequestBody {
   custom_input?: string | null;
 }
 
-if (typeof window !== 'undefined') {
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
+
+if (typeof window !== 'undefined' && USE_MOCK) {
+  console.warn('[mock-api] Mock API interceptor is ACTIVE. API calls will NOT reach the real backend.')
+
   const originalFetch = window.fetch
   window.fetch = async (...args) => {
     const [url, options] = args
     const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : ''
 
     if (urlString.startsWith('/api/submit') && (!options || options.method === 'POST')) {
-      console.log('Mocking API call to /api/submit')
-      
+      console.log('[mock-api] Intercepting /api/submit')
+
       try {
         await new Promise(resolve => setTimeout(resolve, 800))
-        
+
         const testResults = [
           { status: 'AC', message: 'Accepted' },
           { status: 'AC', message: 'Accepted' },
@@ -29,11 +37,11 @@ if (typeof window !== 'undefined') {
           { status: 'AC', message: 'Accepted' },
           { status: 'TLE', message: 'Time Limit Exceeded' },
         ]
-        
+
         const passedCount = testResults.filter(t => t.status === 'AC').length
         const totalCount = testResults.length
         const allPassed = passedCount === totalCount
-        
+
         const responseData = {
           submission_id: Date.now(),
           status: allPassed ? 'AC' : 'WA',
@@ -41,7 +49,7 @@ if (typeof window !== 'undefined') {
           test_results: testResults,
           timestamp: Date.now()
         }
-        
+
         return new Response(JSON.stringify(responseData), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
@@ -55,18 +63,18 @@ if (typeof window !== 'undefined') {
     }
 
     if (urlString.startsWith('/api/run') && (!options || options.method === 'POST')) {
-      console.log('Mocking API call to /api/run')
-      
+      console.log('[mock-api] Intercepting /api/run')
+
       try {
         await new Promise(resolve => setTimeout(resolve, 500))
-        
+
         let requestBody: RunRequestBody = {}
         if (options && options.body) {
           requestBody = JSON.parse(options.body as string)
         }
-        
+
         const isCustomInput = requestBody.custom_input && requestBody.custom_input.trim()
-        
+
         let testCases
         if (isCustomInput) {
           testCases = [
@@ -93,7 +101,7 @@ if (typeof window !== 'undefined') {
             }
           ]
         }
-        
+
         const responseData = {
           run_id: Date.now(),
           status: 'Success',
@@ -101,7 +109,7 @@ if (typeof window !== 'undefined') {
           test_cases: testCases,
           timestamp: Date.now()
         }
-        
+
         return new Response(JSON.stringify(responseData), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }

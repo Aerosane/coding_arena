@@ -1,0 +1,48 @@
+services:
+  # --- Go backend + DMOJ bridge ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"   # HTTP API
+      - "9999:9999"   # DMOJ bridge (judge connects here)
+    environment:
+      PORT: "8080"
+      BRIDGE_ADDR: ":9999"
+      JUDGE_ID: "coding-arena"
+      JUDGE_KEY: "changeme"
+      CORS_ORIGINS: "http://localhost,http://localhost:80,http://localhost:5173"
+      # API_KEYS: "your-key-here"  # Uncomment for production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- DMOJ Judge Server ---
+  judge:
+    build:
+      context: ./judge-server
+      dockerfile: .docker/tier3/Dockerfile
+    volumes:
+      - ./judge-config/.dmojrc:/home/judge/.dmojrc:ro
+      - ./judge-config/problems:/problems:ro
+    # The judge connects OUT to the bridge (not the other way around)
+    command: ["run", "backend", "-p", "9999"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Frontend (nginx serving built React app) ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

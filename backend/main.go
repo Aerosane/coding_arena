@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Aerosane/coding_arena/backend/adapter"
+	"github.com/Aerosane/coding_arena/backend/bridge"
 	"github.com/Aerosane/coding_arena/backend/handler"
 	"github.com/Aerosane/coding_arena/backend/middleware"
 	"github.com/gin-gonic/gin"
@@ -33,6 +35,31 @@ func main() {
 	// --- Production mode ---
 	gin.SetMode(gin.ReleaseMode)
 
+	// --- DMOJ Judge Bridge ---
+	bridgeAddr := os.Getenv("BRIDGE_ADDR")
+	if bridgeAddr == "" {
+		bridgeAddr = ":9999"
+	}
+	judgeID := os.Getenv("JUDGE_ID")
+	if judgeID == "" {
+		judgeID = "coding-arena"
+	}
+	judgeKey := os.Getenv("JUDGE_KEY")
+	if judgeKey == "" {
+		judgeKey = "changeme"
+		log.Println("[WARN] Using default JUDGE_KEY — set JUDGE_KEY env var for production.")
+	}
+
+	b := bridge.New(bridgeAddr, judgeID, judgeKey)
+	if err := b.Start(); err != nil {
+		log.Fatalf("failed to start bridge: %v", err)
+	}
+	defer b.Stop()
+
+	// Create adapter and inject into handler
+	adapt := adapter.New(b)
+	handler.SetAdapter(adapt)
+
 	// --- Router setup (no default middleware — we add our own) ---
 	r := gin.New()
 
@@ -47,9 +74,9 @@ func main() {
 	}
 
 	// --- Global middleware stack (order matters) ---
-	r.Use(gin.Recovery())                    // Panic recovery (always first)
-	r.Use(middleware.RequestLogger())         // Structured security logging
-	r.Use(middleware.SecurityHeaders())       // Security response headers (HSTS, CSP, etc.)
+	r.Use(gin.Recovery())                      // Panic recovery (always first)
+	r.Use(middleware.RequestLogger())           // Structured security logging
+	r.Use(middleware.SecurityHeaders())         // Security response headers (HSTS, CSP, etc.)
 	r.Use(middleware.MaxBodySize(maxBodyBytes)) // Request body size limit (DoS prevention)
 
 	// CORS — set CORS_ORIGINS env var to a comma-separated list of allowed origins.
@@ -78,7 +105,14 @@ func main() {
 	// --- Routes ---
 	// Health check is unauthenticated (for load balancers / k8s probes)
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		judgeStatus := "disconnected"
+		if adapt.Available() {
+			judgeStatus = "connected"
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"judge":  judgeStatus,
+		})
 	})
 
 	// Authenticated routes
@@ -89,6 +123,7 @@ func main() {
 		log.Println("[WARN] No API_KEYS configured — authentication is DISABLED. Set API_KEYS env var for production.")
 	}
 	authed.POST("/submit", handler.Submit)
+	authed.POST("/run", handler.Run)
 
 	// --- HTTP server with explicit timeouts (Slowloris / connection exhaustion prevention) ---
 	port := os.Getenv("PORT")
@@ -107,6 +142,7 @@ func main() {
 	// --- Graceful shutdown ---
 	go func() {
 		log.Printf("[INFO] Backend starting on :%s (release mode)", port)
+		log.Printf("[INFO] Bridge listening on %s for judge connections", bridgeAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
