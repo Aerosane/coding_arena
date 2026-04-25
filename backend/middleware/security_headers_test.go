@@ -6,42 +6,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TestSecurityHeaders_AllPresent tests that all security headers are present in response.
+/**
+ * Tests for SecurityHeaders middleware.
+ * Verifies all 8 security headers are present with correct values,
+ * including on error (404) responses.
+ */
+
 func TestSecurityHeaders_AllPresent(t *testing.T) {
-	// Setup: Create router with SecurityHeaders middleware
 	router := setupTestRouter()
 	router.Use(SecurityHeaders())
-	router.GET("/test", func(c *gin.Context) {
-		c.JSON(200, gin.H{"ok": true})
-	})
+	router.GET("/test", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 
-	// Execute: Make a GET request
 	w := makeRequest(router, "GET", "/test", nil)
 
-	// Assert: All 8 security headers should be present
-	assertHeaderExists(t, w, "X-Content-Type-Options")
-	assertHeaderExists(t, w, "X-Frame-Options")
-	assertHeaderExists(t, w, "X-XSS-Protection")
-	assertHeaderExists(t, w, "Referrer-Policy")
-	assertHeaderExists(t, w, "Content-Security-Policy")
-	assertHeaderExists(t, w, "Permissions-Policy")
-	assertHeaderExists(t, w, "Strict-Transport-Security")
-	assertHeaderExists(t, w, "Cache-Control")
+	headers := []string{
+		"X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection",
+		"Referrer-Policy", "Content-Security-Policy", "Permissions-Policy",
+		"Strict-Transport-Security", "Cache-Control",
+	}
+	for _, h := range headers {
+		assertHeaderExists(t, w, h)
+	}
 }
 
-// TestSecurityHeaders_CorrectValues tests that each header has the correct value.
 func TestSecurityHeaders_CorrectValues(t *testing.T) {
-	// Setup: Create router with SecurityHeaders middleware
 	router := setupTestRouter()
 	router.Use(SecurityHeaders())
-	router.GET("/test", func(c *gin.Context) {
-		c.JSON(200, gin.H{"ok": true})
-	})
+	router.GET("/test", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 
-	// Execute: Make a GET request
 	w := makeRequest(router, "GET", "/test", nil)
 
-	// Assert: Each header should have the exact correct value
 	assertHeader(t, w, "X-Content-Type-Options", "nosniff")
 	assertHeader(t, w, "X-Frame-Options", "DENY")
 	assertHeader(t, w, "X-XSS-Protection", "1; mode=block")
@@ -52,26 +46,20 @@ func TestSecurityHeaders_CorrectValues(t *testing.T) {
 	assertHeader(t, w, "Cache-Control", "no-store")
 }
 
-// TestSecurityHeaders_OnErrorResponse tests that headers are present even on error responses.
 func TestSecurityHeaders_OnErrorResponse(t *testing.T) {
-	// Setup: Create router with SecurityHeaders middleware
 	router := setupTestRouter()
 	router.Use(SecurityHeaders())
-	// No routes defined - will trigger 404
+	// No routes — triggers 404
 
-	// Execute: Make request to non-existent route
 	w := makeRequest(router, "GET", "/nonexistent", nil)
-
-	// Assert: Status should be 404
 	assertStatus(t, w, 404)
 
-	// Assert: Security headers should still be present on error response
-	assertHeaderExists(t, w, "X-Content-Type-Options")
-	assertHeaderExists(t, w, "X-Frame-Options")
-	assertHeaderExists(t, w, "X-XSS-Protection")
-	assertHeaderExists(t, w, "Referrer-Policy")
-	assertHeaderExists(t, w, "Content-Security-Policy")
-	assertHeaderExists(t, w, "Permissions-Policy")
-	assertHeaderExists(t, w, "Strict-Transport-Security")
-	assertHeaderExists(t, w, "Cache-Control")
+	// Security headers should still be present on error responses
+	for _, h := range []string{
+		"X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection",
+		"Referrer-Policy", "Content-Security-Policy", "Permissions-Policy",
+		"Strict-Transport-Security", "Cache-Control",
+	} {
+		assertHeaderExists(t, w, h)
+	}
 }
