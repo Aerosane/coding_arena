@@ -1,0 +1,80 @@
+test_cases:
+  - in: test-cases/test1/test1.in
+    out: test-cases/test1/test1.out
+    points: 2
+
+  - in: test-cases/test2/test2.in
+    out: test-cases/test2/test2.out
+    points: 2
+
+  - in: test-cases/test3/test3.in
+    out: test-cases/test3/test3.out
+    points: 2
+
+  - in: test-cases/test4/test4.in
+    out: test-cases/test4/test4.out
+    points: 2
+
+  - in: test-cases/test5/test5.in
+    out: test-cases/test5/test5.out
+    points: 2
+
+  - in: test-cases/test6/test6.in
+    out: test-cases/test6/test6.out
+    points: 2
+
+  - in: test-cases/test7/test7.in
+    out: test-cases/test7/test7.out
+    points: 2
+
+  - in: test-cases/test8/test8.in
+    out: test-cases/test8/test8.out
+    points: 2
+
+  - in: test-cases/test9/test9.in
+    out: test-cases/test9/test9.out
+    points: 2
+
+  - in: test-cases/test10/test10.in
+    out: test-cases/test10/test10.out
+    points: 2
+
+  - in: test-cases/test11/test11.in
+    out: test-cases/test11/test11.out
+    points: 2
+
+  - in: test-cases/test12/test12.in
+    out: test-cases/test12/test12.out
+    points: 2
+
+  - in: test-cases/test13/test13.in
+    out: test-cases/test13/test13.out
+    points: 2
+
+  - in: test-cases/test14/test14.in
+    out: test-cases/test14/test14.out
+    points: 2
+
+  - in: test-cases/test15/test15.in
+    out: test-cases/test15/test15.out
+    points: 2
+
+  - in: test-cases/test16/test16.in
+    out: test-cases/test16/test16.out
+    points: 2
+
+  - in: test-cases/test17/test17.in
+    out: test-cases/test17/test17.out
+    points: 2
+
+  - in: test-cases/test18/test18.in
+    out: test-cases/test18/test18.out
+    points: 2
+
+  - in: test-cases/test19/test19.in
+    out: test-cases/test19/test19.out
+    points: 2
+
+  - in: test-cases/test20/test20.in
+    out: test-cases/test20/test20.out
+    points: 2
