@@ -12,13 +12,13 @@ import (
 
 // LanguageMap maps frontend language names to DMOJ executor IDs.
 // Uses a fallback chain per language — the adapter tries the first available executor.
-// JAVA8 is used as primary since tier1/tier2 images only ship Java 8;
-// tier3 images include JAVA (Java 9+) and GO.
+// JAVA (Java 25) is primary since the arena image ships Java 25;
+// JAVA8 is the fallback for images that only ship Java 8.
 var LanguageMap = map[string][]string{
 	"python": {"PY3"},
 	"cpp":    {"CPP17", "CPP14", "CPP11"},
 	"c":      {"C11", "C"},
-	"java":   {"JAVA8", "JAVA"},
+	"java":   {"JAVA", "JAVA8"},
 	"go":     {"GO"},
 }
 
