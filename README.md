@@ -85,7 +85,7 @@ cd frontend && npm run dev           # frontend dev server on :5173
 
 ## Contributing
 
-Fork, branch, PR against `main`. Commits follow `type(scope): description`. Backend changes should pass `go test ./...`. Problem PRs should include properly formatted test data (look at existing problems for reference).
+Fork, branch, PR against `main` on [Aerosane/coding_arena](https://github.com/Aerosane/coding_arena), not the GCET org repo. Commits follow `type(scope): description`. Backend changes should pass `go test ./...`. Problem PRs should include properly formatted test data (look at existing problems for reference).
 
 ## License
 
