@@ -13,7 +13,6 @@ import (
 )
 
 // Run handles POST /run — runs code against sample test cases.
-// Functionally similar to Submit but uses the "run" semantic for the frontend.
 func Run(c *gin.Context) {
 	var req model.RunRequest
 
@@ -24,24 +23,7 @@ func Run(c *gin.Context) {
 		return
 	}
 
-	if len(req.Source) > maxCodeLength {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "code exceeds maximum allowed size",
-		})
-		return
-	}
-
-	if !supportedLanguages[req.Language] {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "unsupported language",
-		})
-		return
-	}
-
-	if len(req.ProblemID) > maxProblemIDLength || !problemIDPattern.MatchString(req.ProblemID) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid problem_id: must be 1-64 lowercase alphanumeric characters or hyphens",
-		})
+	if abortWithValidationError(c, validateInput(req.Source, req.Language, req.ProblemID)) {
 		return
 	}
 
@@ -66,40 +48,37 @@ func Run(c *gin.Context) {
 
 		if err != nil {
 			log.Printf("[ERROR] run failed for %s: %v", runID, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"run_id":  runID,
-				"status":  "error",
-				"message": "judge execution failed",
+			c.JSON(http.StatusInternalServerError, model.RunResponse{
+				RunID:   runID,
+				Status:  "error",
+				Message: "judge execution failed",
 			})
 			return
 		}
 
-		testCases := make([]gin.H, 0, len(judgeResult.Cases))
+		testCases := make([]model.RunCaseResult, 0, len(judgeResult.Cases))
 		for _, cr := range judgeResult.Cases {
-			testCases = append(testCases, gin.H{
-				"name":            fmt.Sprintf("Test Case %d", cr.Position),
-				"status":          cr.Status,
-				"time":            cr.Time,
-				"memory_kb":       cr.Memory,
-				"input":           "",
-				"expected_output": "",
-				"actual_output":   cr.Feedback,
+			testCases = append(testCases, model.RunCaseResult{
+				Name:         fmt.Sprintf("Test Case %d", cr.Position),
+				Status:       cr.Status,
+				Time:         cr.Time,
+				MemoryKB:     cr.Memory,
+				ActualOutput: cr.Feedback,
 			})
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"run_id":     runID,
-			"status":     judgeResult.Status,
-			"message":    judgeResult.Status,
-			"test_cases": testCases,
-			"timestamp":  0,
+		c.JSON(http.StatusOK, model.RunResponse{
+			RunID:     runID,
+			Status:    judgeResult.Status,
+			Message:   judgeResult.Status,
+			TestCases: testCases,
 		})
 		return
 	}
 
-	c.JSON(http.StatusServiceUnavailable, gin.H{
-		"run_id":  runID,
-		"status":  "unavailable",
-		"message": "no judge connected — run unavailable",
+	c.JSON(http.StatusServiceUnavailable, model.RunResponse{
+		RunID:   runID,
+		Status:  "unavailable",
+		Message: "no judge connected — run unavailable",
 	})
 }
