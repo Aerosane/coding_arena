@@ -5,40 +5,11 @@ import (
 	"encoding/hex"
 	"log"
 	"net/http"
-	"regexp"
 
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/adapter"
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/model"
 	"github.com/gin-gonic/gin"
 )
-
-var supportedLanguages = map[string]bool{
-	"python": true,
-	"cpp":    true,
-	"c":      true,
-	"java":   true,
-	"go":     true,
-}
-
-// problemIDPattern validates problem IDs: lowercase alphanumeric + hyphens, 1-64 chars.
-var problemIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9\-]{0,63}$`)
-
-const (
-	// maxCodeLength is the maximum allowed source code size in bytes (512 KB).
-	maxCodeLength = 512 * 1024
-	// maxProblemIDLength is the maximum length for a problem ID.
-	maxProblemIDLength = 64
-	// submissionIDBytes is the number of random bytes for submission IDs (16 bytes = 128 bits).
-	submissionIDBytes = 16
-)
-
-// judgeAdapter is set by main.go at startup via SetAdapter.
-var judgeAdapter *adapter.JudgeAdapter
-
-// SetAdapter injects the judge adapter into the handler package.
-func SetAdapter(a *adapter.JudgeAdapter) {
-	judgeAdapter = a
-}
 
 // Submit handles POST /submit — accepts code, language, and problem ID.
 func Submit(c *gin.Context) {
@@ -51,28 +22,7 @@ func Submit(c *gin.Context) {
 		return
 	}
 
-	if len(req.Code) > maxCodeLength {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "code exceeds maximum allowed size",
-		})
-		return
-	}
-
-	if !supportedLanguages[req.Language] {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "unsupported language",
-		})
-		return
-	}
-
-	/*
-		Validate problem_id format to prevent
-		path traversal and injection.
-	*/
-	if len(req.ProblemID) > maxProblemIDLength || !problemIDPattern.MatchString(req.ProblemID) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid problem_id: must be 1-64 lowercase alphanumeric characters or hyphens",
-		})
+	if abortWithValidationError(c, validateInput(req.Code, req.Language, req.ProblemID)) {
 		return
 	}
 

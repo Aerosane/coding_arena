@@ -106,10 +106,11 @@ type Bridge struct {
 	mu     sync.Mutex
 	judges map[string]*JudgeConn // name -> connection
 
-	pending   sync.Map
-	nextID    atomic.Int64
-	closeOnce sync.Once
-	done      chan struct{}
+	pending      sync.Map
+	caseResults  sync.Map // int64 -> *[]CaseResult
+	nextID       atomic.Int64
+	closeOnce    sync.Once
+	done         chan struct{}
 }
 
 // New creates a new Bridge that listens on the given address.
@@ -362,17 +363,14 @@ func (b *Bridge) handlePacket(jc *JudgeConn, pkt Packet) {
 	}
 }
 
-// caseAccumulator stores in-progress test case results per submission.
-var caseAccumulators sync.Map // int64 -> *[]CaseResult
-
 func (b *Bridge) accumulateCase(subID int64, cr CaseResult) {
-	val, _ := caseAccumulators.LoadOrStore(subID, &[]CaseResult{})
+	val, _ := b.caseResults.LoadOrStore(subID, &[]CaseResult{})
 	cases := val.(*[]CaseResult)
 	*cases = append(*cases, cr)
 }
 
 func (b *Bridge) finalizeResult(subID int64) {
-	val, ok := caseAccumulators.LoadAndDelete(subID)
+	val, ok := b.caseResults.LoadAndDelete(subID)
 	cases := &[]CaseResult{}
 	if ok {
 		cases = val.(*[]CaseResult)
