@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -132,7 +133,7 @@ func (a *JudgeAdapter) Submit(req SubmissionRequest) (*SubmissionResult, error) 
 
 	raw, err := a.bridge.Submit(ctx, req.ProblemID, executorID, req.Source, timeLimit, memoryLimit, req.ShortCircuit)
 	if err != nil {
-		if err == context.DeadlineExceeded {
+		if errors.Is(err, context.DeadlineExceeded) {
 			return &SubmissionResult{
 				Status: "IE",
 			}, nil
