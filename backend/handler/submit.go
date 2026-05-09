@@ -7,11 +7,11 @@ import (
 	"net/http"
 
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/adapter"
+	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/db"
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/model"
 	"github.com/gin-gonic/gin"
 )
 
-// Submit handles POST /submit.
 func Submit(c *gin.Context) {
 	var req model.SubmitRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -32,6 +32,7 @@ func Submit(c *gin.Context) {
 		id, req.Language, req.ProblemID, c.ClientIP())
 
 	if judgeAdapter == nil || !judgeAdapter.Available() {
+		persist(c, id, req, "pending", nil)
 		c.JSON(http.StatusAccepted, model.SubmitResponse{
 			ID:        id,
 			ProblemID: req.ProblemID,
@@ -50,6 +51,7 @@ func Submit(c *gin.Context) {
 	})
 	if err != nil {
 		log.Printf("[ERROR] judge failed for %s: %v", id, err)
+		persist(c, id, req, "judge_error", nil)
 		c.JSON(http.StatusAccepted, model.SubmitResponse{
 			ID:        id,
 			ProblemID: req.ProblemID,
@@ -59,6 +61,8 @@ func Submit(c *gin.Context) {
 		})
 		return
 	}
+
+	persist(c, id, req, result.Status, result)
 
 	resp := model.SubmitResponse{
 		ID:        id,
@@ -73,6 +77,36 @@ func Submit(c *gin.Context) {
 		id, result.Status, result.Points, result.TotalPoints)
 
 	c.JSON(http.StatusOK, resp)
+}
+
+func persist(c *gin.Context, id string, req model.SubmitRequest, verdict string, result *adapter.SubmissionResult) {
+	if db.Pool == nil {
+		return
+	}
+
+	sub := &db.Submission{
+		ID:        id,
+		ProblemID: req.ProblemID,
+		Language:  req.Language,
+		Source:    req.Code,
+		Verdict:   verdict,
+		IP:        c.ClientIP(),
+	}
+
+	if result != nil {
+		sub.Points = result.Points
+		sub.TotalPoints = result.TotalPoints
+		sub.TotalTime = result.TotalTime
+		sub.MaxMemory = result.MaxMemory
+		sub.CompileError = result.CompileError
+		sub.Cases = db.MarshalCases(result.Cases)
+	} else {
+		sub.Cases = []byte("[]")
+	}
+
+	if err := db.InsertSubmission(c.Request.Context(), sub); err != nil {
+		log.Printf("[ERROR] failed to persist submission %s: %v", id, err)
+	}
 }
 
 func generateID(prefix string) string {
