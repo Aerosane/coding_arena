@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Run handles POST /run.
 func Run(c *gin.Context) {
 	var req model.RunRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

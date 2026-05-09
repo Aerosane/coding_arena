@@ -13,6 +13,7 @@ import (
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/adapter"
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/bridge"
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/config"
+	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/db"
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/handler"
 	"github.com/GCET-Open-Source-Foundation/coding_arena/backend/middleware"
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,20 @@ func main() {
 		log.Fatalf("failed to start bridge: %v", err)
 	}
 	defer b.Stop()
+
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := db.Connect(ctx, dbURL); err != nil {
+			log.Fatalf("database connection failed: %v", err)
+		}
+		defer db.Close()
+		if err := db.Migrate(ctx); err != nil {
+			log.Fatalf("database migration failed: %v", err)
+		}
+	} else {
+		log.Println("[WARN] No DATABASE_URL set — submissions will not be persisted.")
+	}
 
 	cfg, err := config.LoadJudgeConfig()
 	if err != nil {
