@@ -23,7 +23,6 @@ const maxCodeLength = 512 * 1024
 
 var judgeAdapter *adapter.JudgeAdapter
 
-// SetAdapter injects the judge adapter into the handler package.
 func SetAdapter(a *adapter.JudgeAdapter) {
 	judgeAdapter = a
 }
