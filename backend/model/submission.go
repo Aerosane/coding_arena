@@ -8,12 +8,10 @@ type SubmitRequest struct {
 }
 
 // RunRequest represents an incoming run/test request from the frontend.
-// The frontend sends "source" instead of "code" for run requests.
 type RunRequest struct {
-	Source      string  `json:"source" binding:"required"`
-	Language    string  `json:"language" binding:"required"`
-	ProblemID   string  `json:"problem_id" binding:"required"`
-	CustomInput *string `json:"custom_input"`
+	Source    string `json:"source" binding:"required"`
+	Language  string `json:"language" binding:"required"`
+	ProblemID string `json:"problem_id" binding:"required"`
 }
 
 // SubmitResponse represents the result of a submission.

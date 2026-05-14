@@ -21,6 +21,9 @@ type Submission struct {
 }
 
 func InsertSubmission(ctx context.Context, s *Submission) error {
+	if Pool == nil {
+		return nil
+	}
 	_, err := Pool.Exec(ctx, `
 		INSERT INTO submissions (id, problem_id, language, source, verdict, points, total_points, total_time, max_memory, compile_error, cases, ip)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,

@@ -20,6 +20,7 @@ type RateLimiter struct {
 	rate     float64 // tokens per second
 	burst    int     // max tokens (burst capacity)
 	cleanup  time.Duration
+	stopCh   chan struct{}
 }
 
 // NewRateLimiter creates a rate limiter. rate is requests/second, burst is max burst size.
@@ -29,23 +30,34 @@ func NewRateLimiter(rate float64, burst int) *RateLimiter {
 		rate:    rate,
 		burst:   burst,
 		cleanup: 5 * time.Minute,
+		stopCh:  make(chan struct{}),
 	}
 	go rl.cleanupLoop()
 	return rl
+}
+
+// Stop terminates the background cleanup goroutine.
+func (rl *RateLimiter) Stop() {
+	close(rl.stopCh)
 }
 
 // cleanupLoop removes stale entries to prevent memory leaks.
 func (rl *RateLimiter) cleanupLoop() {
 	ticker := time.NewTicker(rl.cleanup)
 	defer ticker.Stop()
-	for range ticker.C {
-		rl.mu.Lock()
-		for ip, c := range rl.clients {
-			if time.Since(c.lastSeen) > rl.cleanup {
-				delete(rl.clients, ip)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			for ip, c := range rl.clients {
+				if time.Since(c.lastSeen) > rl.cleanup {
+					delete(rl.clients, ip)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.stopCh:
+			return
 		}
-		rl.mu.Unlock()
 	}
 }
 

@@ -80,10 +80,6 @@ func Submit(c *gin.Context) {
 }
 
 func persist(c *gin.Context, id string, req model.SubmitRequest, verdict string, result *adapter.SubmissionResult) {
-	if db.Pool == nil {
-		return
-	}
-
 	sub := &db.Submission{
 		ID:        id,
 		ProblemID: req.ProblemID,
@@ -111,7 +107,10 @@ func persist(c *gin.Context, id string, req model.SubmitRequest, verdict string,
 
 func generateID(prefix string) string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		log.Printf("[ERROR] crypto/rand failed: %v", err)
+		panic("crypto/rand unavailable")
+	}
 	return prefix + hex.EncodeToString(b)
 }
 
