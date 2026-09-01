@@ -3,21 +3,23 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 )
 
 type Submission struct {
-	ID           string
-	ProblemID    string
-	Language     string
-	Source       string
-	Verdict      string
-	Points       float64
-	TotalPoints  float64
-	TotalTime    float64
-	MaxMemory    int64
-	CompileError string
-	Cases        []byte
-	IP           string
+	ID           string  `json:"id"`
+	ProblemID    string  `json:"problem_id"`
+	Language     string  `json:"language"`
+	Source       string  `json:"source"`
+	Verdict      string  `json:"verdict"`
+	Points       float64 `json:"points"`
+	TotalPoints  float64 `json:"total_points"`
+	TotalTime    float64 `json:"total_time"`
+	MaxMemory    int64   `json:"max_memory"`
+	CompileError string  `json:"compile_error"`
+	Cases        []byte  `json:"cases"`
+	IP           string  `json:"ip"`
 }
 
 func InsertSubmission(ctx context.Context, s *Submission) error {
@@ -32,6 +34,61 @@ func InsertSubmission(ctx context.Context, s *Submission) error {
 		s.CompileError, s.Cases, s.IP,
 	)
 	return err
+}
+
+func GetSubmissions(ctx context.Context, problem, verdict string) ([]Submission, error) {
+	if Pool == nil {
+		return []Submission{}, nil
+	}
+
+	query := `SELECT id, problem_id, language, source, verdict, points, total_points, total_time, max_memory, compile_error, cases, ip FROM submissions`
+	var conditions []string
+	var args []interface{}
+	argID := 1
+
+	if problem != "" {
+		conditions = append(conditions, fmt.Sprintf("problem_id = $%d", argID))
+		args = append(args, problem)
+		argID++
+	}
+
+	if verdict != "" {
+		conditions = append(conditions, fmt.Sprintf("verdict = $%d", argID))
+		args = append(args, verdict)
+		argID++
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	query += " ORDER BY id DESC LIMIT 100"
+
+	rows, err := Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var submissions []Submission
+	for rows.Next() {
+		var s Submission
+		err := rows.Scan(
+			&s.ID, &s.ProblemID, &s.Language, &s.Source, &s.Verdict,
+			&s.Points, &s.TotalPoints, &s.TotalTime, &s.MaxMemory,
+			&s.CompileError, &s.Cases, &s.IP,
+		)
+		if err != nil {
+			return nil, err
+		}
+		submissions = append(submissions, s)
+	}
+
+	if submissions == nil {
+		submissions = []Submission{}
+	}
+
+	return submissions, nil
 }
 
 func MarshalCases(cases any) []byte {

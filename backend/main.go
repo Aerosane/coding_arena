@@ -113,7 +113,8 @@ func main() {
 	}
 	authed.POST("/submit", handler.Submit)
 	authed.POST("/run", handler.Run)
-
+	authed.GET("/api/submissions", handler.ListSubmissions)
+	
 	port := envOr("PORT", "8080")
 	srv := &http.Server{
 		Addr:         ":" + port,
