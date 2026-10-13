@@ -1,5 +1,21 @@
 package model
 
+import "time"
+
+// SubmissionResponse represents a submission in the submissions list.
+// It intentionally excludes source code, compile errors, test cases, and IP.
+type SubmissionResponse struct {
+	ID          string    `json:"id"`
+	ProblemID   string    `json:"problem_id"`
+	Language    string    `json:"language"`
+	Verdict     string    `json:"verdict"`
+	Points      float64   `json:"points"`
+	TotalPoints float64   `json:"total_points"`
+	TotalTime   float64   `json:"total_time"`
+	MaxMemory   int64     `json:"max_memory_kb"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 // SubmitRequest represents an incoming code submission.
 type SubmitRequest struct {
 	Code      string `json:"code" binding:"required"`
