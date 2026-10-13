@@ -42,13 +42,13 @@ type SubmitResponse struct {
 
 // JudgeResult holds the detailed grading result from the DMOJ judge.
 type JudgeResult struct {
-	Verdict      string           `json:"verdict"`
-	CompileError string           `json:"compile_error,omitempty"`
+	Verdict      string            `json:"verdict"`
+	CompileError string            `json:"compile_error,omitempty"`
 	Cases        []JudgeCaseResult `json:"cases,omitempty"`
-	TotalTime    float64          `json:"total_time"`
-	MaxMemory    int64            `json:"max_memory_kb"`
-	Points       float64          `json:"points"`
-	TotalPoints  float64          `json:"total_points"`
+	TotalTime    float64           `json:"total_time"`
+	MaxMemory    int64             `json:"max_memory_kb"`
+	Points       float64           `json:"points"`
+	TotalPoints  float64           `json:"total_points"`
 }
 
 // JudgeCaseResult holds the result of a single test case.
