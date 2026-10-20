@@ -105,7 +105,15 @@ func main() {
 		})
 	})
 
-	authed := r.Group("/")
+	// --- API routes (all under /api) ---
+	api := r.Group("/api")
+
+	// Public problem endpoints
+	api.GET("/problems", handler.GetProblems)
+	api.GET("/problems/:id", handler.GetProblem)
+
+	// Authenticated routes
+	authed := api.Group("/")
 	if len(apiKeys) > 0 {
 		authed.Use(middleware.APIKeyAuth(apiKeys))
 	} else {

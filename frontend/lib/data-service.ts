@@ -84,7 +84,7 @@ export async function getProblems(retries: number = 3, retryDelay: number = 1000
   
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const response = await fetch('/data/problems.json')
+      const response = await fetch('/api/problems')
       
       if (!response.ok) {
         throw new Error(`Failed to load problems: ${response.statusText}`)
@@ -93,7 +93,7 @@ export async function getProblems(retries: number = 3, retryDelay: number = 1000
       const data: ProblemsData = await response.json()
       
       if (!data.problems || !Array.isArray(data.problems)) {
-        throw new Error('Invalid problems.json structure: missing problems array')
+        throw new Error('Invalid API response: missing problems array')
       }
       
       // Cache the result
@@ -122,10 +122,15 @@ export async function getProblems(retries: number = 3, retryDelay: number = 1000
  */
 export async function getProblemById(id: string): Promise<Problem | null> {
   try {
-    const problems = await getProblems()
-    const problem = problems.find(p => p.id === id)
+    const response = await fetch(`/api/problems/${id}`)
     
-    return problem || null
+    if (!response.ok) {
+      if (response.status === 404) return null
+      throw new Error(`Failed to load problem ${id}: ${response.statusText}`)
+    }
+    
+    const problem: Problem = await response.json()
+    return problem
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to load problem ${id}: ${error.message}`)
@@ -206,15 +211,11 @@ function validateProblemId(problemId: string): string {
   }
   
   const trimmed = problemId.trim()
-  
-  if (trimmed.length === 0) {
-    throw new Error('Problem ID must be a non-empty string')
-  }
-  
-  // Sanitize: reject IDs with special characters or path traversal attempts
-  // eslint-disable-next-line no-control-regex
-  if (/[<>:"|?*\x00-\x1f]/.test(trimmed) || trimmed.includes('..')) {
-    throw new Error('Problem ID contains invalid characters')
+
+  // Must match backend problemIDPattern: lowercase alphanumeric + hyphens, 1-64 chars,
+  // must start with alphanumeric. Mirrors the regex in handler/submit.go.
+  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(trimmed)) {
+    throw new Error('Problem ID must be lowercase alphanumeric with hyphens, 1-64 characters')
   }
   
   return trimmed
